@@ -25,9 +25,6 @@ const vkVersion = '5.53';
 const db = pmongo(mongoConnectionString);
 const r = new snoowrap(redditConfig);
 
-let promises = [];
-// db.documents.find().toArray().then(console.log).then(() => db.close());
-
 const postAlreadyProcessed = id => db.processedVideos.findOne({videoId: id})
     .then(doc => {return !!doc;});
 
@@ -51,7 +48,6 @@ const deleteFile = file => new Promise((resolve, reject) =>
 );
 
 const promiseDownload = (url, dest) => new Promise((resolve, reject) => {
-
   download(url, dest, msg => resolve(dest));
 });
 
@@ -104,10 +100,11 @@ const processGfycat = item => {
   return rp({
     uri: gfycatEndpoint + videoId,
     json: true
-  }).then(response => {
+  })
+  .then(response => {
       return {
         type: 'video',
-        videoUrl: response.gfyItem.mobileUrl
+        videoUrl: response.gfyItem.mp4Url
       }
   });
 };
@@ -165,11 +162,12 @@ const processRedditPosts = listing => {
         .then(processed => {
           console.log(processed + ' '  + item.redditPost.id);
           if (processed) { return; }
-          return rememberPost(item.redditPost.id)
-            .then(() => item.convertToVkPostPromise(item.redditPost))
-            .then(vkPost => appendInfo(vkPost, item.redditPost))
-            .then(processVkPost)
-            .catch(console.error);
+
+          return item.convertToVkPostPromise(item.redditPost)
+              .then(vkPost => appendInfo(vkPost, item.redditPost))
+              .then(processVkPost)
+              .then(() => rememberPost(item.redditPost.id))
+              .catch(console.error);
         })
     })
 };
@@ -178,4 +176,5 @@ const processRedditPosts = listing => {
 r.getSubreddit(subreddit)
   .getTop({time: 'day'})
   .then(processRedditPosts)
-  .then(promises => Promise.all(promises).then(() => db.close()));
+  .then(promises => Promise.all(promises).then(() => () => db.close()))
+  .catch(console.error);
