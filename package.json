@@ -1,0 +1,21 @@
+{
+  "name": "reddit-to-vk-poster",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "mkdirp": "^0.5.1",
+    "mongodb": "^2.2.10",
+    "promised-mongo": "^1.2.0",
+    "request": "^2.75.0",
+    "request-promise": "^4.1.1",
+    "snoowrap": "^1.8.1",
+    "vksdk": "git+https://github.com/57uff3r/nodejs-vksdk.git"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
