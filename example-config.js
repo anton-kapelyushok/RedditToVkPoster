@@ -10,5 +10,13 @@ const redditConfig = {
 const tmpFolder = 'tmp';
 const subreddit = 'Overwatch';
 const vkGroupId = '1';
+const mongoConnectionString = 'mongodb://localhost:27017/reddit-to-vk-poster';
 
-module.exports = {vkAccessToken, redditConfig, tmpFolder, subreddit, vkGroupId};
+module.exports = {
+  vkAccessToken,
+  redditConfig,
+  tmpFolder,
+  subreddit,
+  vkGroupId,
+  mongoConnectionString
+};
