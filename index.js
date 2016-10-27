@@ -6,6 +6,7 @@ const fs = require('fs');
 const https = require('https');
 const mkdirp = require('mkdirp');
 
+
 const config = require('./config');
 const vkAccessToken = config.vkAccessToken;
 const redditConfig = config.redditConfig;
@@ -15,24 +16,26 @@ const vkGroupId = config.vkGroupId;
 const mongoConnectionString = config.mongoConnectionString;
 mkdirp(tmpFolder);
 
+
 const gfycatEndpoint = 'https://gfycat.com/cajax/get/';
 
 const vkUploadVideoEndpoint = 'https://api.vk.com/method/video.save';
 const vkVersion = '5.53';
 
-
 const db = pmongo(mongoConnectionString);
 const r = new snoowrap(redditConfig);
 
-const postAlreadyProcessed = id => db.processedVideos.findOne({
-        videoId: id
+const postAlreadyProcessed = (id, subreddit) => db.processedVideos.findOne({
+        videoId: id,
+        subreddit: subreddit.toLowerCase()
     })
     .then(doc => {
         return !!doc;
     });
 
-const rememberPost = id => db.processedVideos.save({
-    videoId: id
+const rememberPost = (id, subreddit) => db.processedVideos.save({
+    videoId: id,
+    subreddit: subreddit.toLowerCase()
 });
 
 const download = function(url, dest, cb) {
@@ -51,7 +54,7 @@ const download = function(url, dest, cb) {
 };
 
 const deleteFile = file => new Promise((resolve) =>
-    fs.unlink(file, () => resolve())
+    fs.unlink(file, resolve)
 );
 
 const promiseDownload = (url, dest) => new Promise((resolve) => {
@@ -181,16 +184,17 @@ const processVkPost = vkPost => {
     }
 };
 
-const processRedditPosts = listing => {
+const processRedditPosts = (listing, subreddit) => {
     return listing.map(redditPost => {
             let convertToVkPostPromise = getConvertToVkPostPromise(redditPost);
             return {
                 redditPost: redditPost,
                 convertToVkPostPromise: convertToVkPostPromise
             };
-        }).filter(item => item.convertToVkPostPromise)
+        })
+        .filter(item => item.convertToVkPostPromise)
         .map(item => {
-            return postAlreadyProcessed(item.redditPost.id)
+            return postAlreadyProcessed(item.redditPost.id, subreddit)
                 .then(processed => {
                     console.log(processed + ' ' + item.redditPost.id);
                     if (processed) {
@@ -200,7 +204,7 @@ const processRedditPosts = listing => {
                     return item.convertToVkPostPromise(item.redditPost)
                         .then(vkPost => appendInfo(vkPost, item.redditPost))
                         .then(processVkPost)
-                        .then(() => rememberPost(item.redditPost.id))
+                        .then(() => rememberPost(item.redditPost.id, subreddit))
                         .then(() => console.log('finished processing ' + item.redditPost.id))
                         .catch(() => console.error('error while processing reddit post'));
                 });
@@ -212,6 +216,6 @@ r.getSubreddit(subreddit)
     .getTop({
         time: 'day'
     })
-    .then(processRedditPosts)
+    .then(listing => processRedditPosts(listing, subreddit))
     .then(promises => Promise.all(promises).then(() => db.close()))
     .catch(() => console.error('error somewhere?'));
